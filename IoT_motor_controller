@@ -1,0 +1,99 @@
+// Define GPIO pins for peripherals
+const int relayPin = 26;  // Relay control
+const int buzzerPin = 27; // Buzzer control
+const int ledPin = 25;    // Status LED
+
+const int dirPin = 18;    // Stepper motor direction
+const int stepPin = 19;    // Stepper motor step
+const int enPin = 21;     // Stepper motor enable
+
+// Variable to store incoming serial commands
+String incomingCommand;
+
+void setup() {
+  // Initialize serial communication
+  Serial.begin(115200);
+  Serial.println("System Initialization...");
+
+  // Initialize output pins
+  pinMode(relayPin, OUTPUT);
+  pinMode(buzzerPin, OUTPUT);
+  pinMode(ledPin, OUTPUT);
+  pinMode(stepPin, OUTPUT);
+  pinMode(dirPin, OUTPUT);
+  pinMode(enPin, OUTPUT);
+
+  // Set initial states of outputs
+  digitalWrite(relayPin, HIGH); // Relay OFF (HIGH)
+  digitalWrite(buzzerPin, LOW);  // Buzzer OFF (LOW)
+  digitalWrite(enPin, LOW);     // Stepper motor enabled (LOW)
+
+  // System startup indication (LED blink)
+  Serial.println("Performing self-test (LED blink)...");
+  for (int i = 0; i < 4; i++) {
+    digitalWrite(ledPin, LOW);  // LED ON
+    delay(250);
+    digitalWrite(ledPin, HIGH); // LED OFF
+    delay(250);
+  }
+
+  Serial.println("System ready. Enter '1000' to activate.");
+}
+
+void startMotor(int speedDelayMicroseconds, int steps) {
+  Serial.println("Stepper motor starting...");
+
+  // Clockwise rotation
+  Serial.println("Rotating clockwise...");
+  digitalWrite(dirPin, HIGH);
+  for (int i = 0; i < steps; i++) {
+    digitalWrite(stepPin, HIGH);
+    delayMicroseconds(speedDelayMicroseconds);
+    digitalWrite(stepPin, LOW);
+    delayMicroseconds(speedDelayMicroseconds);
+  }
+
+  delay(10000); // Pause before reversing
+
+  // Counter-clockwise rotation
+  Serial.println("Rotating counter-clockwise...");
+  digitalWrite(dirPin, LOW);
+  for (int i = 0; i < steps; i++) {
+    digitalWrite(stepPin, HIGH);
+    delayMicroseconds(speedDelayMicroseconds);
+    digitalWrite(stepPin, LOW);
+    delayMicroseconds(speedDelayMicroseconds);
+  }
+
+  Serial.println("Motor rotation complete.");
+}
+
+void loop() {
+  if (Serial.available() > 0) {
+    incomingCommand = Serial.readStringUntil('\n');
+    incomingCommand.trim();
+
+    if (incomingCommand == "1000") {
+      Serial.println("Command received: Activating system...");
+
+      // Relay activation
+      Serial.println("Activating relay...");
+      digitalWrite(relayPin, LOW); // Relay ON (LOW)
+      delay(1000);                // Relay active for 1 second
+      digitalWrite(relayPin, HIGH); // Relay OFF (HIGH)
+      Serial.println("Relay deactivated.");
+
+      // Buzzer activation
+      Serial.println("Activating buzzer...");
+      digitalWrite(buzzerPin, HIGH); // Buzzer ON
+      delay(250);
+      digitalWrite(buzzerPin, LOW);  // Buzzer OFF
+      Serial.println("Buzzer deactivated.");
+
+      // Stepper motor activation (8 full rotations = 1600 steps)
+      startMotor(200, 1600); // Adjust speedDelayMicroseconds for desired speed
+    } else {
+      Serial.println("Invalid command. Enter '1000' to activate.");
+    }
+  }
+}
